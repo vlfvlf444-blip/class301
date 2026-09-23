@@ -153,6 +153,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
     <span class="spacer"></span>
     <button class="btn" id="selBtn">선택</button>
     <button class="btn" id="homeBtn">처음으로</button>
+    <button class="btn primary" id="upBtn">사진 올리기</button>
   </div>
 </div>
 
@@ -162,6 +163,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
   <div class="selbar-in">
     <strong id="selCount">0개 선택</strong>
     <button class="btn" id="selAll">모두 선택</button>
+    <button class="btn danger" id="selDel" hidden>삭제</button>
     <button class="btn primary" id="selDown">ZIP으로 받기</button>
   </div>
 </div>
@@ -171,6 +173,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
   <div class="lb">
     <div class="lb-top">
       <span class="pos" id="lbPos"></span>
+      <button class="btn danger" id="lbDel" hidden>삭제</button>
       <a class="btn" id="lbSave" download>저장</a>
       <button class="btn" id="lbClose">닫기</button>
     </div>
@@ -180,6 +183,33 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
     </div>
     <div class="lb-info"><p class="cap" id="lbCap"></p><p class="meta" id="lbMeta"></p></div>
   </div>
+</dialog>
+
+<dialog id="upDlg">
+  <form class="sheet" onsubmit="return false">
+    <h3>사진·영상 올리기</h3>
+    <div id="tokBox">
+      <label class="f" for="tok">관리자 토큰 (선생님만)</label>
+      <input type="password" id="tok" autocomplete="off" placeholder="github_pat_로 시작하는 토큰">
+      <p class="hint">한 번 확인되면 이 기기에만 저장돼요. 학생 기기에서는 입력하지 마세요.</p>
+    </div>
+    <p class="hint" id="tokOk" hidden>관리자로 연결돼 있어요. <button type="button" class="btn" id="tokClear" style="padding:2px 10px;font-size:12px">이 기기에서 토큰 지우기</button></p>
+    <label class="f" for="album">앨범 이름</label>
+    <input type="text" id="album" list="albumList" placeholder="예: 체육대회, 수학여행, 졸업사진" maxlength="40" autocomplete="off">
+    <datalist id="albumList"></datalist>
+    <label class="f">파일</label>
+    <div class="drop" id="drop">
+      <strong>여기에 끌어다 놓거나</strong>
+      <button type="button" class="btn" id="pick">파일 고르기</button>
+      <input type="file" id="file" accept="image/*,video/*" multiple hidden>
+    </div>
+    <p class="hint">한 파일당 50MB까지 올릴 수 있어요. 큰 사진은 자동으로 줄이고, HEIC 사진은 JPG로 바꿔서 올려요. 올린 뒤 앨범에 나타나기까지 1~2분 걸려요.</p>
+    <ul class="queue" id="queue"></ul>
+    <div class="actions">
+      <button type="button" class="btn" id="upClose">닫기</button>
+      <button type="button" class="btn primary" id="upGo" disabled>올리기</button>
+    </div>
+  </form>
 </dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -304,7 +334,7 @@ $("selAll").addEventListener("click",()=>{ const on=S.view.every(i=>S.selected.h
 function updateSelbar(){
   $("selbar").classList.toggle("on",S.selecting);
   const n=S.selected.size; $("selCount").textContent=n+"개 선택";
-  $("selDown").disabled=!n || S.busy;
+  $("selDown").disabled=!n || S.busy; $("selDel").disabled=!n;
   $("selAll").textContent=(S.view.length&&S.view.every(i=>S.selected.has(i.path)))?"선택 해제":"모두 선택";
 }
 $("selDown").addEventListener("click",()=>downloadZip(S.items.filter(i=>S.selected.has(i.path)), "선택", $("selDown")));
@@ -382,6 +412,163 @@ document.addEventListener("keydown",e=>{ if(!$("lb").open) return; if(e.key==="A
 let tx=null;
 $("lbStage").addEventListener("touchstart",e=>{tx=e.touches[0].clientX},{passive:true});
 $("lbStage").addEventListener("touchend",e=>{ if(tx===null) return; const dx=e.changedTouches[0].clientX-tx; tx=null; if(Math.abs(dx)>50) step(dx<0?1:-1); });
+
+// ================= 관리자: 올리기 · 삭제 (GitHub API) =================
+// 저장소 정보: vlfvlf444-blip.github.io/저장소이름/ 주소에서 자동으로 알아내요.
+const OWNER = location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : "vlfvlf444-blip";
+const REPO  = location.hostname.endsWith(".github.io") ? (location.pathname.split("/")[1] || OWNER + ".github.io") : "저장소이름";
+const BRANCH = "main";
+const FILE_MAX = 50 * 1024 * 1024;
+let TOKEN = ""; try { TOKEN = localStorage.getItem("album_token") || ""; } catch(e){}
+S.queue = [];
+
+async function gh(path, opts={}){
+  const headers = { Authorization: "Bearer " + TOKEN, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+  if (opts.body) headers["Content-Type"] = "application/json";
+  const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}${path}`, { ...opts, headers });
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) throw Object.assign(new Error(j.message || ("오류 " + r.status)), { status: r.status });
+  return j;
+}
+function adminUI(){
+  const on = !!TOKEN;
+  $("tokBox").hidden = on; $("tokOk").hidden = !on;
+  $("selDel").hidden = !on; $("lbDel").hidden = !on;
+}
+async function checkToken(t){
+  const prev = TOKEN; TOKEN = t;
+  try { const repo = await gh(""); if (!repo.permissions || !repo.permissions.push) throw new Error("이 토큰에는 쓰기 권한이 없어요."); return true; }
+  catch(e){ TOKEN = prev; throw e.status===401 ? new Error("토큰이 맞지 않거나 만료됐어요.") : e.status===404 ? new Error(`저장소(${OWNER}/${REPO})를 찾을 수 없어요. 토큰의 저장소 선택을 확인해 주세요.`) : e; }
+}
+$("tokClear").addEventListener("click",()=>{ TOKEN=""; try{localStorage.removeItem("album_token")}catch(e){} $("tok").value=""; adminUI(); toast("이 기기에서 토큰을 지웠어요"); });
+
+// 여러 파일을 한 번의 커밋으로 추가/삭제 (sha:null = 삭제)
+async function commitFiles(entries, message){
+  for (let attempt=0; attempt<3; attempt++){
+    const ref = await gh(`/git/ref/heads/${BRANCH}`);
+    const base = await gh(`/git/commits/${ref.object.sha}`);
+    const tree = await gh(`/git/trees`, { method:"POST", body: JSON.stringify({ base_tree: base.tree.sha, tree: entries }) });
+    const commit = await gh(`/git/commits`, { method:"POST", body: JSON.stringify({ message, tree: tree.sha, parents:[ref.object.sha] }) });
+    try { await gh(`/git/refs/heads/${BRANCH}`, { method:"PATCH", body: JSON.stringify({ sha: commit.sha }) }); return; }
+    catch(e){ if (e.status!==422 || attempt===2) throw e; }
+  }
+}
+
+// 배포가 끝나 목록이 바뀔 때까지 기다렸다가 새로 고침
+let pollT;
+function waitForDeploy(before){
+  clearTimeout(pollT); let n=0;
+  const tick = async () => {
+    n++;
+    try { const r=await fetch("media/list.json?t="+Date.now(),{cache:"no-store"}); const j=await r.json();
+      if (JSON.stringify(j.map(i=>i.path)) !== before){ S.items=j; render(); toast("앨범에 반영됐어요"); return; } } catch(e){}
+    if (n<16) pollT=setTimeout(tick,15000);
+  };
+  pollT=setTimeout(tick,20000);
+}
+
+// ---------- 올리기 창 ----------
+$("upBtn").addEventListener("click",()=>{
+  S.queue=[]; drawQueue(); adminUI();
+  $("album").value = S.album && S.album!==NO_ALBUM ? S.album : "";
+  const dl=$("albumList"); dl.innerHTML=""; albumsOf(S.items).filter(a=>a!==NO_ALBUM).forEach(a=>{ const o=document.createElement("option"); o.value=a; dl.append(o); });
+  $("upDlg").showModal();
+});
+$("upClose").addEventListener("click",()=>$("upDlg").close());
+$("pick").addEventListener("click",()=>$("file").click());
+$("file").addEventListener("change",e=>{ addFiles(e.target.files); e.target.value=""; });
+const drop=$("drop");
+["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>addFiles(e.dataTransfer.files));
+function addFiles(fl){ for(const f of fl) S.queue.push({file:f,status:"대기",state:""}); drawQueue(); }
+function drawQueue(){
+  const q=$("queue"); q.innerHTML="";
+  for(const it of S.queue){ const li=document.createElement("li"); li.className=it.state; const n=document.createElement("span"); n.className="n"; n.textContent=it.file.name; const st=document.createElement("span"); st.className="s"; st.textContent=it.status; li.append(n,st); q.append(li); }
+  $("upGo").disabled=!S.queue.some(i=>i.state==="");
+}
+
+const BY_EXT={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",gif:"image/gif",webp:"image/webp",heic:"image/heic",heif:"image/heif",mp4:"video/mp4",m4v:"video/mp4",mov:"video/quicktime",webm:"video/webm"};
+const typeOf = f => { let t=(f.type||"").toLowerCase(); if(!t||t==="application/octet-stream") t=BY_EXT[(f.name.split(".").pop()||"").toLowerCase()]||""; return t; };
+async function shrink(file, maxSide){
+  let src,w,h;
+  try{ src=await createImageBitmap(file); w=src.width; h=src.height; }
+  catch(e){ src=await new Promise((res,rej)=>{const i=new Image(); i.onload=()=>res(i); i.onerror=()=>rej(new Error("이 브라우저에서 열 수 없는 사진이에요. JPG로 바꿔서 올려 주세요.")); i.src=URL.createObjectURL(file);}); w=src.naturalWidth; h=src.naturalHeight; }
+  const k=Math.min(1,maxSide/Math.max(w,h)), c=document.createElement("canvas");
+  c.width=Math.round(w*k); c.height=Math.round(h*k); c.getContext("2d").drawImage(src,0,0,c.width,c.height);
+  return new Promise(r=>c.toBlob(r,"image/jpeg",0.88));
+}
+async function prepare(f){
+  const t=typeOf(f), base=f.name.replace(/\.[^.]+$/,"").replace(/[\\/:*?"<>|#%\s]+/g,"_").slice(0,60)||"file";
+  const ext=(f.name.split(".").pop()||"").toLowerCase();
+  if (t.startsWith("video/")){
+    if (!["mp4","m4v","mov","webm"].includes(ext)) throw new Error("MP4·MOV·WEBM 영상만 올릴 수 있어요.");
+    if (f.size>FILE_MAX) throw new Error(`영상이 ${mb(f.size)}예요. 50MB 이하로 줄여서 올려 주세요.`);
+    return {blob:f, name:base+"."+ext};
+  }
+  if (t.startsWith("image/")){
+    const simple=["image/jpeg","image/png","image/webp","image/gif"].includes(t);
+    if (!simple || (t!=="image/gif" && f.size>8*1024*1024)) return {blob:await shrink(f,3200), name:base+".jpg"};
+    if (f.size>FILE_MAX) throw new Error(`사진이 ${mb(f.size)}예요.`);
+    return {blob:f, name:base+"."+(ext==="jpeg"?"jpg":ext)};
+  }
+  throw new Error("사진이나 동영상 파일만 올릴 수 있어요.");
+}
+const toB64 = blob => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=()=>rej(new Error("파일을 읽지 못했어요.")); r.readAsDataURL(blob); });
+
+$("upGo").addEventListener("click", async ()=>{
+  const btn=$("upGo"); btn.disabled=true; $("upClose").disabled=true;
+  try {
+    if (!TOKEN){
+      const t=$("tok").value.trim(); if(!t){ toast("관리자 토큰을 입력해 주세요."); $("tok").focus(); return; }
+      btn.textContent="토큰 확인 중"; await checkToken(t);
+      try{ localStorage.setItem("album_token",t); }catch(e){} adminUI();
+    }
+    const album=($("album").value.trim().replace(/[\\/:*?"<>|#%]+/g," ").trim().slice(0,40)) || NO_ALBUM;
+    const used=new Set(S.items.map(i=>i.path)), entries=[];
+    for (const q of S.queue){
+      if (q.state) continue;
+      try{
+        q.status="준비 중"; drawQueue();
+        const p=await prepare(q.file);
+        let path=`media/${album}/${p.name}`, n=2;
+        while(used.has(path)) path=`media/${album}/${p.name.replace(/(\.[^.]+)$/,`_${n++}$1`)}`;
+        used.add(path);
+        q.status="보내는 중"; drawQueue();
+        const blob=await gh(`/git/blobs`,{method:"POST",body:JSON.stringify({content:await toB64(p.blob),encoding:"base64"})});
+        entries.push({path,mode:"100644",type:"blob",sha:blob.sha}); q.path=path; q.status="저장 대기";
+      }catch(e){ q.status=e.message||"준비하지 못했어요."; q.state="bad"; }
+      drawQueue();
+    }
+    if (!entries.length) return;
+    btn.textContent="저장 중";
+    const before=JSON.stringify(S.items.map(i=>i.path));
+    await commitFiles(entries, `사진 올리기: ${album} ${entries.length}개`);
+    S.queue.forEach(q=>{ if(q.path && !q.state){ q.status="완료"; q.state="ok"; } }); drawQueue();
+    toast(`${entries.length}개를 올렸어요. 1~2분 뒤 앨범에 나타나요.`);
+    waitForDeploy(before);
+  } catch(e){
+    if (e.status===401){ TOKEN=""; try{localStorage.removeItem("album_token")}catch(x){} adminUI(); }
+    toast(e.message || "올리지 못했어요. 다시 시도해 주세요.");
+  } finally { btn.textContent="올리기"; $("upClose").disabled=false; drawQueue(); }
+});
+
+// ---------- 삭제 ----------
+async function removeItems(list){
+  if (!TOKEN || !list.length) return false;
+  if (!confirm(`${list.length}개를 삭제할까요? 모든 사람의 앨범에서 사라져요.`)) return false;
+  try{
+    const before=JSON.stringify(S.items.map(i=>i.path));
+    await commitFiles(list.map(i=>({path:i.path,mode:"100644",type:"blob",sha:null})), `사진 삭제 ${list.length}개`);
+    const gone=new Set(list.map(i=>i.path));
+    S.items=S.items.filter(i=>!gone.has(i.path)); gone.forEach(p=>S.selected.delete(p)); render();
+    toast(`${list.length}개를 삭제했어요. 1~2분 뒤 완전히 반영돼요.`);
+    waitForDeploy(before); return true;
+  }catch(e){ toast(e.status===401?"토큰이 만료됐어요. 올리기 창에서 다시 입력해 주세요.":(e.message||"삭제하지 못했어요.")); return false; }
+}
+$("selDel").addEventListener("click",()=>removeItems(S.items.filter(i=>S.selected.has(i.path))));
+$("lbDel").addEventListener("click",async()=>{ const it=S.view[S.lb]; if(it && await removeItems([it])) closeLb(); });
+adminUI();
 })();
 </script>
 </body>
