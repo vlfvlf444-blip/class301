@@ -1,1 +1,62 @@
+# 사진을 올릴 때마다 앨범 목록(media/list.json)을 만들고 사이트를 배포합니다.
+name: 앨범 배포
 
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 앨범 목록 만들기
+        run: |
+          python3 - <<'PY'
+          import os, json, subprocess
+          IMG = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+          VID = {'.mp4', '.webm', '.mov', '.m4v'}
+          os.makedirs('media', exist_ok=True)
+          items = []
+          for root, dirs, files in os.walk('media'):
+              for f in files:
+                  ext = os.path.splitext(f)[1].lower()
+                  if ext not in IMG | VID:
+                      continue
+                  p = os.path.join(root, f).replace(os.sep, '/')
+                  rel = os.path.relpath(root, 'media').replace(os.sep, '/')
+                  album = '기타' if rel == '.' else rel.split('/')[0]
+                  t = subprocess.run(['git', 'log', '-1', '--format=%ct', '--', p],
+                                     capture_output=True, text=True).stdout.strip()
+                  items.append({'path': p, 'album': album, 'name': f,
+                                'size': os.path.getsize(p),
+                                'kind': 'video' if ext in VID else 'image',
+                                'time': int(t or 0) * 1000})
+          items.sort(key=lambda x: (-x['time'], x['name']))
+          with open('media/list.json', 'w', encoding='utf-8') as fp:
+              json.dump(items, fp, ensure_ascii=False)
+          print(f'{len(items)}개 파일')
+          PY
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4
