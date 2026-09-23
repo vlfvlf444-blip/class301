@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>신어중 3-1 앨범</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board:#24433B; --chalk:#F1F4EE; --chalk-dim:#BFD0C8; --yellow:#F4D35E;
+  --bg:#F5F6F2; --surface:#FFFFFF; --ink:#1C2320; --muted:#5F6D67; --line:#D8DED8;
+  --accent:#24433B; --accent-ink:#FFFFFF; --danger:#B83A2E; --sel:#F4D35E;
+  --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --pen:"Nanum Pen Script","Apple SD Gothic Neo","Malgun Gothic",cursive;
+  box-sizing:border-box; color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{--board:#1A302A;--bg:#121715;--surface:#1B221F;--ink:#E6ECE8;--muted:#95A39C;--line:#2C3632;--accent:#F4D35E;--accent-ink:#1C2320;--danger:#E0695C;color-scheme:dark}
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+img,video,iframe{max-width:100%;display:block}
+a{color:inherit}
+
+.board{background:var(--board);color:var(--chalk);padding:28px 20px 22px;position:relative;overflow:hidden}
+.board::after{content:"";position:absolute;inset:auto 0 0 0;height:10px;background:#8A6A45;box-shadow:inset 0 3px 0 rgba(0,0,0,.18)}
+.board-in{max-width:1100px;margin:0 auto;padding-bottom:10px}
+.school{font-size:14px;color:var(--chalk-dim);margin:0}
+.title{font-family:var(--pen);font-weight:400;font-size:clamp(64px,17vw,112px);line-height:.9;margin:4px 0 0;letter-spacing:-1px}
+.title svg{display:block;width:min(260px,62%);height:14px;margin-top:2px}
+.stats{margin:12px 0 0;font-size:14px;color:var(--chalk-dim)}
+.stats b{color:var(--chalk);font-weight:500}
+.stats a{color:var(--yellow);margin-left:10px}
+
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.bar-in{max-width:1100px;margin:0 auto;padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;padding:6px 13px;border-radius:999px;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:500}
+select{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-size:14px;max-width:44vw}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-size:14px;font-weight:500;white-space:nowrap;text-decoration:none;display:inline-block}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--danger);border-color:currentColor;background:transparent}
+.btn[disabled]{opacity:.45;cursor:default}
+
+main{max-width:1100px;margin:0 auto;padding:6px 14px 120px}
+.group{margin-top:22px}
+.group h2{font-size:17px;font-weight:700;margin:0 0 8px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.group h2 span{font-size:13px;font-weight:400;color:var(--muted)}
+.group h2 a{font-size:13px;font-weight:400;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:4px}
+@media (min-width:700px){.grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px}}
+.tile{position:relative;aspect-ratio:1;border:0;padding:0;background:var(--line);border-radius:6px;overflow:hidden}
+.tile img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.tile .play{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;border-radius:999px;font-size:11px;padding:2px 8px 2px 6px}
+.tile .check{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.25);display:none;align-items:center;justify-content:center;color:#1C2320;font-size:14px;font-weight:700}
+.selecting .tile .check{display:flex}
+.tile[aria-pressed="true"]{outline:3px solid var(--sel);outline-offset:-3px}
+.tile[aria-pressed="true"] .check{background:var(--sel);border-color:var(--sel)}
+.tile.broken::after{content:"미리보기 준비 중";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);text-align:center;padding:6px}
+.empty{text-align:center;color:var(--muted);padding:70px 20px}
+
+.selbar{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));display:none}
+.selbar.on{display:block}
+.selbar-in{max-width:1100px;margin:0 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.selbar-in strong{margin-right:auto}
+
+dialog{border:0;padding:0;background:var(--surface);color:var(--ink);border-radius:16px;width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 40px)}
+dialog::backdrop{background:rgba(10,15,13,.55)}
+.sheet{padding:20px}
+.sheet h3{margin:0 0 14px;font-size:18px}
+label.f{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+.sheet input[type=text],.sheet input[type=password]{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:22px 14px;text-align:center;color:var(--muted);margin-top:4px}
+.drop.over{border-color:var(--accent);color:var(--ink)}
+.drop strong{color:var(--ink);display:block;margin-bottom:6px}
+.hint{font-size:12px;color:var(--muted);margin:8px 0 0}
+.err{color:var(--danger);font-size:13px;margin:8px 0 0;min-height:1em}
+.queue{list-style:none;margin:14px 0 0;padding:0;max-height:200px;overflow:auto;font-size:13px}
+.queue li{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.queue li .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.queue li .s{color:var(--muted);flex:none}
+.queue li.ok .s{color:var(--accent)}
+.queue li.bad .s{color:var(--danger);flex-basis:100%}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+
+.gate{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--board);color:var(--chalk)}
+.gate form{width:min(360px,100%)}
+.gate .title{font-size:84px}
+.gate input{width:100%;margin-top:18px;border:0;border-radius:10px;padding:13px 14px;font-size:17px;background:#F1F4EE;color:#1C2320}
+.gate button{width:100%;margin-top:10px;border:0;border-radius:10px;padding:13px;font-size:16px;font-weight:700;background:var(--yellow);color:#1C2320}
+.gate .err{color:#F7B3A9}
+
+#lb{width:100vw;height:100dvh;max-width:none;max-height:none;border-radius:0;background:#0C100E;color:#EEF2EC}
+.lb{display:flex;flex-direction:column;height:100%;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.lb-top{display:flex;gap:8px;align-items:center;padding:10px 12px;flex-wrap:wrap}
+.lb-top .pos{margin-right:auto;font-size:14px;color:#AFC0B8}
+.lb .btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#EEF2EC}
+.lb .btn.danger{color:#F08A7E;border-color:#F08A7E;background:transparent}
+.lb-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;touch-action:pan-y}
+.lb-stage img{max-width:100%;max-height:100%;object-fit:contain}
+.lb-stage iframe{width:min(100%,1100px);height:100%;border:0}
+.nav{position:absolute;top:50%;transform:translateY(-50%);border:0;background:rgba(255,255,255,.12);color:#fff;width:44px;height:64px;border-radius:8px;font-size:22px;z-index:2}
+.nav.prev{left:8px}.nav.next{right:8px}
+.nav[hidden]{display:none}
+.lb-info{padding:10px 16px 14px;font-size:14px}
+.lb-info .cap{margin:0 0 2px;color:#fff}
+.lb-info .meta{margin:0;color:#9FB0A8;font-size:13px}
+
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100vw - 32px);text-align:center}
+.toast.on{opacity:1}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- 입장 화면 -->
+<section class="gate" id="gate" hidden>
+  <form id="gateForm">
+    <p class="school">신어중학교 우리 반 앨범</p>
+    <h1 class="title">3학년 1반</h1>
+    <input type="password" id="gateCode" placeholder="입장 코드" autocomplete="off" inputmode="text" aria-label="입장 코드">
+    <button type="submit" id="gateBtn">들어가기</button>
+    <p class="err" id="gateErr"></p>
+  </form>
+</section>
+
+<div id="app" hidden>
+<header class="board">
+  <div class="board-in">
+    <p class="school">신어중학교 우리 반 사진·영상 앨범</p>
+    <h1 class="title">3학년 1반
+      <svg viewBox="0 0 260 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9 C 60 3, 120 12, 180 6 S 240 8, 257 5" fill="none" stroke="#F4D35E" stroke-width="4" stroke-linecap="round"/></svg>
+    </h1>
+    <p class="stats" id="stats">앨범을 불러오는 중이에요</p>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="seg" role="group" aria-label="종류">
+      <button data-f="all" aria-pressed="true">전체</button>
+      <button data-f="image" aria-pressed="false">사진</button>
+      <button data-f="video" aria-pressed="false">영상</button>
+    </div>
+    <select id="albumSel" aria-label="앨범 고르기"><option value="">모든 앨범</option></select>
+    <span class="spacer"></span>
+    <button class="btn" id="selBtn">선택</button>
+    <button class="btn primary" id="upBtn">올리기</button>
+  </div>
+</div>
+
+<main id="main"><div class="empty">앨범을 불러오는 중이에요</div></main>
+
+<div class="selbar" id="selbar">
+  <div class="selbar-in">
+    <strong id="selCount">0개 선택</strong>
+    <button class="btn" id="selAll">모두 선택</button>
+    <button class="btn danger" id="selDel">삭제</button>
+    <button class="btn primary" id="selDown">다운로드</button>
+  </div>
+</div>
+</div>
+
+<dialog id="upDlg">
+  <form class="sheet" method="dialog" onsubmit="return false">
+    <h3>사진·영상 올리기</h3>
+    <label class="f" for="upCode">올리기 코드</label>
+    <input type="password" id="upCode" autocomplete="off">
+    <label class="f" for="album">앨범 이름</label>
+    <input type="text" id="album" list="albumList" placeholder="예: 체육대회, 수학여행, 졸업사진" maxlength="40" autocomplete="off">
+    <datalist id="albumList"></datalist>
+    <label class="f" for="caption">한 줄 설명 (선택)</label>
+    <input type="text" id="caption" placeholder="예: 계주 결승선 통과하는 순간" maxlength="100" autocomplete="off">
+    <label class="f" for="who">올린 사람 (선택)</label>
+    <input type="text" id="who" placeholder="예: 김필재 선생님" maxlength="20" autocomplete="off">
+    <label class="f">파일</label>
+    <div class="drop" id="drop">
+      <strong>여기에 끌어다 놓거나</strong>
+      <button type="button" class="btn" id="pick">파일 고르기</button>
+      <input type="file" id="file" accept="image/*,video/*" multiple hidden>
+    </div>
+    <p class="hint">한 파일당 30MB까지 올릴 수 있어요. 큰 사진은 자동으로 줄여서 올려요. 올린 영상은 드라이브에서 처리되는 몇 분 동안 미리보기가 안 보일 수 있어요.</p>
+    <ul class="queue" id="queue"></ul>
+    <div class="actions">
+      <button type="button" class="btn" id="upClose">닫기</button>
+      <button type="button" class="btn primary" id="upGo" disabled>올리기</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="lb" aria-label="크게 보기">
+  <div class="lb">
+    <div class="lb-top">
+      <span class="pos" id="lbPos"></span>
+      <button class="btn danger" id="lbDel">삭제</button>
+      <a class="btn" id="lbSave" target="_blank" rel="noopener">저장</a>
+      <button class="btn" id="lbClose">닫기</button>
+    </div>
+    <div class="lb-stage" id="lbStage">
+      <button class="nav prev" id="lbPrev" aria-label="이전">‹</button>
+      <button class="nav next" id="lbNext" aria-label="다음">›</button>
+    </div>
+    <div class="lb-info"><p class="cap" id="lbCap"></p><p class="meta" id="lbMeta"></p></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ▼ Apps Script 웹 앱 주소를 여기에 붙여 넣으세요 (…/exec 로 끝나는 주소)
+const API_URL = "https://script.google.com/macros/s/여기에_배포_ID/exec";
+
+(() => {
+const $ = id => document.getElementById(id);
+const MAX = 30 * 1024 * 1024;
+const NO_ALBUM = "기타";
+const S = { code: localStorage.getItem("album_view") || "", items: [], albums: {}, folderUrl: "",
+  filter: "all", album: "", selecting: false, selected: new Set(), view: [], lb: -1, queue: [] };
+
+let toastT;
+function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),2800); }
+const mb = n => (n/1024/1024).toFixed(1)+"MB";
+const fmtDate = ms => { const d=new Date(ms); return `${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}.`; };
+const thumb = (id,w) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
+const dlUrl = id => `https://drive.google.com/uc?export=download&id=${encodeURIComponent(id)}`;
+const previewUrl = id => `https://drive.google.com/file/d/${encodeURIComponent(id)}/preview`;
+
+async function api(body){
+  const r = await fetch(API_URL, { method:"POST", body: JSON.stringify(body) }); // text/plain → 프리플라이트 없음
+  return r.json();
+}
+async function load(){
+  const r = await fetch(`${API_URL}?action=list&code=${encodeURIComponent(S.code)}&t=${Date.now()}`);
+  const j = await r.json();
+  if (!j.ok) throw Object.assign(new Error(j.error), {code:j.error});
+  S.items = j.items || []; S.albums = j.albums || {}; S.folderUrl = j.folderUrl || "";
+  for (const id of [...S.selected]) if (!S.items.some(i=>i.id===id)) S.selected.delete(id);
+  render();
+}
+
+// ---------- 입장 ----------
+async function enter(){
+  $("gateBtn").disabled = true; $("gateErr").textContent = "";
+  try {
+    await load();
+    localStorage.setItem("album_view", S.code);
+    $("gate").hidden = true; $("app").hidden = false;
+  } catch(e){
+    $("gate").hidden = false; $("app").hidden = true;
+    $("gateErr").textContent = e.code==="code" ? (S.code ? "코드가 맞지 않아요." : "") : "앨범 서버에 연결하지 못했어요. 잠시 뒤 다시 해 주세요.";
+  } finally { $("gateBtn").disabled = false; }
+}
+$("gateForm").addEventListener("submit", e => { e.preventDefault(); S.code = $("gateCode").value.trim(); enter(); });
+if (S.code) enter(); else $("gate").hidden = false;
+
+// ---------- 그리기 ----------
+function albumsOf(items){ const a=[]; for (const it of items){ const n=it.album||NO_ALBUM; if(!a.includes(n)) a.push(n);} return a; }
+function render(){
+  const all=S.items, nImg=all.filter(i=>i.kind==="image").length, nVid=all.length-nImg;
+  const st=$("stats"); st.textContent="";
+  if (!all.length) st.textContent="아직 비어 있어요";
+  else { st.append("사진 "); const b1=document.createElement("b"); b1.textContent=nImg+"장"; st.append(b1,", 영상 "); const b2=document.createElement("b"); b2.textContent=nVid+"개"; st.append(b2); }
+  if (S.folderUrl){ const a=document.createElement("a"); a.href=S.folderUrl; a.target="_blank"; a.rel="noopener"; a.textContent="드라이브 폴더 열기"; st.append(a); }
+
+  const albums=albumsOf(all), sel=$("albumSel");
+  sel.innerHTML='<option value="">모든 앨범</option>';
+  for (const a of albums){ const o=document.createElement("option"); o.value=a; o.textContent=a; sel.append(o); }
+  if (S.album && !albums.includes(S.album)) S.album="";
+  sel.value=S.album;
+  const dl=$("albumList"); dl.innerHTML=""; albums.filter(a=>a!==NO_ALBUM).forEach(a=>{ const o=document.createElement("option"); o.value=a; dl.append(o); });
+
+  S.view = all.filter(i => (S.filter==="all"||i.kind===S.filter) && (!S.album||(i.album||NO_ALBUM)===S.album));
+  const main=$("main"); main.innerHTML=""; main.classList.toggle("selecting", S.selecting);
+  if (!S.view.length){
+    const e=document.createElement("div"); e.className="empty";
+    e.textContent = all.length ? "조건에 맞는 항목이 없어요. 위에서 종류나 앨범을 바꿔 보세요." : "아직 올린 사진이 없어요. 오른쪽 위 ‘올리기’로 첫 사진을 올려 보세요.";
+    main.append(e); updateSelbar(); return;
+  }
+  for (const a of albumsOf(S.view)){
+    const list=S.view.filter(i=>(i.album||NO_ALBUM)===a);
+    const g=document.createElement("section"); g.className="group";
+    const h=document.createElement("h2"); h.textContent=a;
+    const c=document.createElement("span"); c.textContent=list.length+"개"; h.append(c);
+    if (S.albums[a]){ const l=document.createElement("a"); l.href=S.albums[a]; l.target="_blank"; l.rel="noopener"; l.textContent="폴더로 한꺼번에 받기"; h.append(l); }
+    const grid=document.createElement("div"); grid.className="grid";
+    list.forEach(it=>grid.append(tile(it)));
+    g.append(h,grid); main.append(g);
+  }
+  updateSelbar();
+}
+function tile(it){
+  const b=document.createElement("button"); b.type="button"; b.className="tile";
+  b.setAttribute("aria-label",(it.kind==="video"?"영상 ":"사진 ")+(it.caption||it.name||""));
+  if (S.selecting) b.setAttribute("aria-pressed", S.selected.has(it.id)?"true":"false");
+  const img=document.createElement("img"); img.src=thumb(it.id,400); img.loading="lazy"; img.alt=""; img.referrerPolicy="no-referrer";
+  img.addEventListener("error",()=>b.classList.add("broken"));
+  b.append(img);
+  if (it.kind==="video"){ const p=document.createElement("span"); p.className="play"; p.textContent="▶ 영상"; b.append(p); }
+  const ck=document.createElement("span"); ck.className="check"; ck.textContent="✓"; b.append(ck);
+  b.addEventListener("click",()=>{
+    if (S.selecting){ S.selected.has(it.id)?S.selected.delete(it.id):S.selected.add(it.id); b.setAttribute("aria-pressed",S.selected.has(it.id)?"true":"false"); updateSelbar(); }
+    else openLb(S.view.findIndex(v=>v.id===it.id));
+  });
+  return b;
+}
+
+// ---------- 필터·선택 ----------
+document.querySelectorAll(".seg button").forEach(btn=>btn.addEventListener("click",()=>{
+  S.filter=btn.dataset.f; document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x===btn?"true":"false")); render();
+}));
+$("albumSel").addEventListener("change",e=>{ S.album=e.target.value; render(); });
+$("selBtn").addEventListener("click",()=>{ S.selecting=!S.selecting; if(!S.selecting) S.selected.clear(); $("selBtn").textContent=S.selecting?"선택 취소":"선택"; render(); });
+$("selAll").addEventListener("click",()=>{ const on=S.view.every(i=>S.selected.has(i.id)); S.view.forEach(i=>on?S.selected.delete(i.id):S.selected.add(i.id)); render(); });
+function updateSelbar(){
+  $("selbar").classList.toggle("on",S.selecting);
+  const n=S.selected.size; $("selCount").textContent=n+"개 선택";
+  $("selDown").disabled=!n; $("selDel").disabled=!n;
+  $("selAll").textContent=(S.view.length&&S.view.every(i=>S.selected.has(i.id)))?"선택 해제":"모두 선택";
+}
+
+// 여러 개 다운로드: 파일마다 차례로 다운로드 창을 띄움
+$("selDown").addEventListener("click", async ()=>{
+  const list=S.items.filter(i=>S.selected.has(i.id)); if(!list.length) return;
+  if (list.length>10 && !confirm(`${list.length}개를 하나씩 내려받아요. 많으면 앨범의 ‘폴더로 한꺼번에 받기’가 더 편해요. 계속할까요?`)) return;
+  for (let k=0;k<list.length;k++){
+    const a=document.createElement("a"); a.href=dlUrl(list[k].id); a.rel="noopener";
+    const f=document.createElement("iframe"); f.hidden=true; f.src=a.href; document.body.append(f); setTimeout(()=>f.remove(),60000);
+    $("selDown").textContent=`받는 중 ${k+1}/${list.length}`;
+    await new Promise(r=>setTimeout(r,900));
+  }
+  $("selDown").textContent="다운로드"; toast("다운로드를 시작했어요. 브라우저가 여러 파일 받기를 물으면 ‘허용’을 눌러 주세요.");
+});
+
+// ---------- 삭제 ----------
+async function removeItems(list){
+  if (!list.length) return false;
+  const code = prompt(`${list.length}개를 삭제해요. 모든 사람의 앨범에서 사라져요.\n선생님 코드를 입력하세요.`);
+  if (!code) return false;
+  try {
+    const j = await api({action:"delete", code, ids:list.map(i=>i.id)});
+    if (!j.ok){ toast(j.error==="code"?"선생님 코드가 맞지 않아요.":"삭제하지 못했어요."); return false; }
+    list.forEach(i=>S.selected.delete(i.id));
+    toast(`${j.deleted}개를 삭제했어요`); await load(); return true;
+  } catch(e){ toast("삭제하지 못했어요. 인터넷 연결을 확인해 주세요."); return false; }
+}
+$("selDel").addEventListener("click",()=>removeItems(S.items.filter(i=>S.selected.has(i.id))));
+
+// ---------- 크게 보기 ----------
+function openLb(i){ if(i<0) return; S.lb=i; showLb(i); if(!$("lb").open) $("lb").showModal(); }
+function showLb(i){
+  const it=S.view[i]; if(!it) return closeLb();
+  const st=$("lbStage"); st.querySelectorAll("img,iframe").forEach(n=>n.remove());
+  let m;
+  if (it.kind==="video"){ m=document.createElement("iframe"); m.src=previewUrl(it.id); m.allow="autoplay; fullscreen"; m.allowFullscreen=true; m.title="영상"; }
+  else { m=document.createElement("img"); m.src=thumb(it.id,2000); m.alt=it.caption||it.name||"사진"; m.referrerPolicy="no-referrer"; }
+  st.prepend(m);
+  $("lbPos").textContent=`${i+1} / ${S.view.length}`;
+  $("lbPrev").hidden=i===0; $("lbNext").hidden=i===S.view.length-1;
+  $("lbCap").textContent=it.caption||it.name||"";
+  const parts=[it.album||NO_ALBUM, fmtDate(it.createdAt)]; if(it.uploader) parts.push(it.uploader+" 올림"); if(it.size) parts.push(mb(it.size));
+  $("lbMeta").textContent=parts.join("  |  ");
+  $("lbSave").href=dlUrl(it.id);
+}
+function closeLb(){ $("lbStage").querySelectorAll("iframe").forEach(n=>n.remove()); if($("lb").open) $("lb").close(); S.lb=-1; }
+function step(d){ const n=S.lb+d; if(n>=0&&n<S.view.length){ S.lb=n; showLb(n); } }
+$("lbPrev").addEventListener("click",()=>step(-1));
+$("lbNext").addEventListener("click",()=>step(1));
+$("lbClose").addEventListener("click",closeLb);
+$("lb").addEventListener("close",()=>{ $("lbStage").querySelectorAll("iframe").forEach(n=>n.remove()); S.lb=-1; });
+$("lbDel").addEventListener("click",async()=>{ const it=S.view[S.lb]; if(it && await removeItems([it])) closeLb(); });
+document.addEventListener("keydown",e=>{ if(!$("lb").open) return; if(e.key==="ArrowLeft") step(-1); if(e.key==="ArrowRight") step(1); });
+let tx=null;
+$("lbStage").addEventListener("touchstart",e=>{tx=e.touches[0].clientX},{passive:true});
+$("lbStage").addEventListener("touchend",e=>{ if(tx===null) return; const dx=e.changedTouches[0].clientX-tx; tx=null; if(Math.abs(dx)>50) step(dx<0?1:-1); });
+
+// ---------- 올리기 ----------
+$("upBtn").addEventListener("click",()=>{
+  S.queue=[]; drawQueue();
+  $("upCode").value=localStorage.getItem("album_up")||"";
+  $("who").value=localStorage.getItem("album_who")||"";
+  $("album").value=S.album&&S.album!==NO_ALBUM?S.album:""; $("caption").value="";
+  $("upDlg").showModal();
+});
+$("upClose").addEventListener("click",()=>$("upDlg").close());
+$("pick").addEventListener("click",()=>$("file").click());
+$("file").addEventListener("change",e=>{ addFiles(e.target.files); e.target.value=""; });
+const drop=$("drop");
+["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>addFiles(e.dataTransfer.files));
+function addFiles(fl){ for(const f of fl) S.queue.push({file:f,status:"대기",state:""}); drawQueue(); }
+function drawQueue(){
+  const q=$("queue"); q.innerHTML="";
+  for(const it of S.queue){ const li=document.createElement("li"); li.className=it.state; const n=document.createElement("span"); n.className="n"; n.textContent=it.file.name; const s=document.createElement("span"); s.className="s"; s.textContent=it.status; li.append(n,s); q.append(li); }
+  $("upGo").disabled=!S.queue.some(i=>i.state==="");
+}
+
+const BY_EXT={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",gif:"image/gif",webp:"image/webp",heic:"image/heic",heif:"image/heif",mp4:"video/mp4",m4v:"video/mp4",mov:"video/quicktime",webm:"video/webm","3gp":"video/3gpp"};
+function typeOf(f){ let t=(f.type||"").toLowerCase(); if(!t||t==="application/octet-stream") t=BY_EXT[(f.name.split(".").pop()||"").toLowerCase()]||""; return t; }
+async function shrink(file, maxSide){
+  let src,w,h;
+  try{ src=await createImageBitmap(file); w=src.width; h=src.height; }
+  catch(e){ src=await new Promise((res,rej)=>{const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=URL.createObjectURL(file);}); w=src.naturalWidth; h=src.naturalHeight; }
+  const s=Math.min(1,maxSide/Math.max(w,h)), c=document.createElement("canvas");
+  c.width=Math.round(w*s); c.height=Math.round(h*s); c.getContext("2d").drawImage(src,0,0,c.width,c.height);
+  return new Promise(r=>c.toBlob(r,"image/jpeg",0.88));
+}
+async function prepare(f){
+  const t=typeOf(f);
+  if (t.startsWith("video/")){ if(f.size>MAX) throw new Error(`영상이 ${mb(f.size)}예요. 30MB 이하로 줄여서 올려 주세요.`); return {blob:f,mime:t,name:f.name}; }
+  if (t.startsWith("image/")){
+    const simple=["image/jpeg","image/png","image/webp"].includes(t);
+    if (t!=="image/gif" && (!simple || f.size>8*1024*1024)){      // HEIC·큰 사진 → JPG로 줄이기
+      try { const j=await shrink(f,3200); if(j) return {blob:j,mime:"image/jpeg",name:f.name.replace(/\.[^.]+$/,"")+".jpg"}; } catch(e){}
+    }
+    if (f.size>MAX) throw new Error(`사진이 ${mb(f.size)}예요. 30MB 이하만 올릴 수 있어요.`);
+    return {blob:f,mime:t,name:f.name};
+  }
+  throw new Error("사진이나 동영상 파일만 올릴 수 있어요.");
+}
+const toB64 = blob => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(",")[1]); r.onerror=()=>rej(new Error("파일을 읽지 못했어요.")); r.readAsDataURL(blob); });
+
+$("upGo").addEventListener("click", async ()=>{
+  const code=$("upCode").value.trim();
+  if(!code){ toast("올리기 코드를 입력해 주세요."); $("upCode").focus(); return; }
+  const album=$("album").value.trim(), caption=$("caption").value.trim(), who=$("who").value.trim();
+  localStorage.setItem("album_who",who);
+  $("upGo").disabled=true; $("upClose").disabled=true;
+  let ok=0, stop=false;
+  for (const q of S.queue){
+    if (q.state || stop) continue;
+    try{
+      q.status="준비 중"; drawQueue();
+      const p=await prepare(q.file);
+      q.status="올리는 중"; drawQueue();
+      const j=await api({action:"upload", code, name:p.name, mime:p.mime, data:await toB64(p.blob), album, caption, uploader:who});
+      if(!j.ok){ if(j.error==="code"){ stop=true; throw new Error("올리기 코드가 맞지 않아요."); } throw new Error(j.error==="type"?"지원하지 않는 형식이에요.":"올리지 못했어요. ("+j.error+")"); }
+      localStorage.setItem("album_up",code);
+      q.status="완료"; q.state="ok"; ok++;
+    }catch(e){ q.status=e.message||"올리지 못했어요. 인터넷 연결을 확인해 주세요."; q.state="bad"; }
+    drawQueue();
+  }
+  $("upClose").disabled=false; drawQueue();
+  if(ok){ toast(`${ok}개를 올렸어요`); try{ await load(); }catch(e){} }
+});
+})();
+</script>
+</body>
+</html>
