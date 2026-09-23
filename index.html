@@ -152,6 +152,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
     <select id="albumSel" aria-label="앨범 고르기"><option value="">모든 앨범</option></select>
     <span class="spacer"></span>
     <button class="btn" id="selBtn">선택</button>
+    <button class="btn" id="homeBtn">처음으로</button>
   </div>
 </div>
 
@@ -203,12 +204,34 @@ async function sha256(s){ const b=await crypto.subtle.digest("SHA-256", new Text
 // ---------- 입장 ----------
 async function tryEnter(code, silent){
   if (await sha256(code) !== CODE_HASH){ if(!silent) $("gateErr").textContent="참여 코드가 맞지 않아요."; return; }
-  try { localStorage.setItem("album_code", code); } catch(e){}
+  try { sessionStorage.setItem("album_code", code); } catch(e){}
+  if (!history.state || !history.state.album) history.pushState({album:true}, "", "#album");
   $("gate").hidden = true; $("app").hidden = false;
   load();
 }
+// 입장 화면으로 돌아가기 (저장된 코드 지움)
+function showGate(){
+  try { sessionStorage.removeItem("album_code"); localStorage.removeItem("album_code"); } catch(e){}
+  if ($("lb").open) closeLb();
+  S.selecting=false; S.selected.clear(); $("selBtn").textContent="선택";
+  $("app").hidden = true; $("gate").hidden = false;
+  $("gateCode").value = ""; $("gateErr").textContent = "";
+  window.scrollTo(0,0); $("gateCode").focus();
+}
 $("gateForm").addEventListener("submit", e => { e.preventDefault(); $("gateErr").textContent=""; tryEnter($("gateCode").value.trim()); });
-try { const saved = localStorage.getItem("album_code"); if (saved) tryEnter(saved, true); } catch(e){}
+// '처음으로' 버튼 → 뒤로가기와 같게 처리
+$("homeBtn").addEventListener("click", () => { if (history.state && history.state.album) history.back(); else showGate(); });
+// 브라우저·휴대폰 뒤로가기
+window.addEventListener("popstate", e => {
+  if (e.state && e.state.album) return;
+  if (!$("app").hidden) showGate();
+});
+try { localStorage.removeItem("album_code"); } catch(e){}
+try {
+  const saved = sessionStorage.getItem("album_code");
+  if (saved && history.state && history.state.album) tryEnter(saved, true);
+  else if (location.hash === "#album") history.replaceState(null, "", location.pathname + location.search);
+} catch(e){}
 
 async function load(){
   try {
